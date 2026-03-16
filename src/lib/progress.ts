@@ -10,6 +10,7 @@ export interface Progress {
   streakDays: number;
   lastVisit: string | null;
   totalPuzzlesSolved: number;
+  xp: number;
 }
 
 const defaultProgress: Progress = {
@@ -22,6 +23,7 @@ const defaultProgress: Progress = {
   streakDays: 0,
   lastVisit: null,
   totalPuzzlesSolved: 0,
+  xp: 0,
 };
 
 const KEY = "chess-academy-progress";

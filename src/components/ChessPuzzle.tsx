@@ -5,6 +5,7 @@ import { Chessboard } from "react-chessboard";
 import { Chess } from "chess.js";
 type PieceDropHandlerArgs = { piece: unknown; sourceSquare: string; targetSquare: string | null };
 import type { Puzzle } from "@/lib/puzzles";
+import { sounds } from "@/lib/sounds";
 
 interface Props {
   puzzle: Puzzle;
@@ -38,11 +39,13 @@ export default function ChessPuzzle({ puzzle, onSolve, size = 400 }: Props) {
       setAttempts((a) => a + 1);
 
       if (isCorrect) {
+        sounds.correct();
         setGame(new Chess(game.fen()));
         setStatus("correct");
         setMessage(puzzle.explanation);
         onSolve(true);
       } else {
+        sounds.wrong();
         setGame(new Chess(puzzle.fen));
         setStatus("wrong");
         setMessage(

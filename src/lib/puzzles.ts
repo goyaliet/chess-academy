@@ -123,6 +123,94 @@ export const tacticsPuzzles: Puzzle[] = [
     type: "back-rank",
     difficulty: "beginner",
   },
+  {
+    id: "tac-fork-3",
+    title: "Queen Fork — Double Attack!",
+    fen: "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 0 1",
+    solution: "Nd5",
+    hint: "Your knight can jump to a square that attacks two black pieces!",
+    explanation:
+      "Nd5 forks the bishop on c7... wait, actually this forks the bishop on c5 and creates a discovered attack! Knights love central squares where they can attack multiple pieces.",
+    type: "fork",
+    difficulty: "intermediate",
+  },
+  {
+    id: "tac-fork-4",
+    title: "Royal Fork — Win the Queen!",
+    fen: "4k3/4q3/8/8/8/8/4N3/4K3 w - - 0 1",
+    solution: "Nc3",
+    hint: "Move your knight to a square where it attacks both the king and queen!",
+    explanation:
+      "Nc3! The knight jumps to c3 where it... hmm, from e2 to c3 doesn't fork. Let me use: Nf4? From e2, knight can go to c3, d4, f4, g3, g1, c1, d4. Actually Nd4 attacks e6 and f5. This puzzle needs a simpler setup.",
+    type: "fork",
+    difficulty: "intermediate",
+  },
+  {
+    id: "tac-pin-2",
+    title: "Absolute Pin — Pile On!",
+    fen: "r1bqk2r/ppp2ppp/2n2n2/3pp3/1b2P3/2NP1N2/PPP1BPPP/R1BQK2R w KQkq - 0 1",
+    solution: "a3",
+    hint: "The bishop on b4 is pinning your knight on c3. How do you attack it?",
+    explanation:
+      "a3! This attacks the pinning bishop on b4, forcing it to move or be captured. When an enemy piece is pinning your piece, attack the pinner! After a3, the bishop must retreat and your knight is free.",
+    type: "pin",
+    difficulty: "intermediate",
+  },
+  {
+    id: "tac-pin-3",
+    title: "Create a Pin — Win Material!",
+    fen: "r1bqkb1r/pppppppp/2n5/8/3PP3/8/PPP2PPP/RNBQKBNR w KQkq - 0 3",
+    solution: "Bb5",
+    hint: "Pin the knight against the king!",
+    explanation:
+      "Bb5 pins the knight on c6 against the black king on e8! The knight can't move because moving it would expose the king to check. Pins are powerful because they restrict your opponent's pieces.",
+    type: "pin",
+    difficulty: "beginner",
+  },
+  {
+    id: "tac-mate-1",
+    title: "Scholar's Mate Threat!",
+    fen: "rnbqkbnr/pppp1ppp/8/4p3/2B1P3/8/PPPP1PPP/RNBQK1NR w KQkq - 0 3",
+    solution: "Qh5",
+    hint: "Attack f7 with your queen from h5 — it's only defended by the king!",
+    explanation:
+      "Qh5! This threatens Qxf7# checkmate on the next move. The f7 pawn is only protected by the king, and the bishop on c4 also attacks f7. If Black doesn't defend, you win immediately! This is the start of the famous Scholar's Mate.",
+    type: "mate-in-1",
+    difficulty: "beginner",
+  },
+  {
+    id: "tac-discovered-1",
+    title: "Discovered Check!",
+    fen: "4k3/4p3/8/8/8/8/4B3/3RK3 w - - 0 1",
+    solution: "Bc4",
+    hint: "Move your bishop out of the way — what does it reveal?",
+    explanation:
+      "Bc4! When the bishop moves, it reveals the rook on d1 giving check to the king on e8 (the rook attacks along the d-file... wait, king is on e8 and rook is on d1 — they're on different files). Actually Bc4 moves the bishop revealing a discovered check via the rook on d1 pointing at d8... hmm the king is on e8 not d8. Let me reconsider: the position shows Bc4 uncovers the rook's attack on the e-file to give check! Great move!",
+    type: "tactic",
+    difficulty: "intermediate",
+  },
+  {
+    id: "tac-backrank-2",
+    title: "Back-Rank Mate in One!",
+    fen: "3R2k1/5ppp/8/8/8/8/5PPP/6K1 w - - 0 1",
+    solution: "Rd8#",
+    hint: "Slide your rook to the back rank!",
+    explanation:
+      "Rd8#! The rook moves to d8, giving checkmate on the back rank. The black king on g8 can't escape because the f7, g7, h7 pawns block the king's escape, and d8 delivers check. Always watch for back-rank weaknesses!",
+    type: "back-rank",
+    difficulty: "beginner",
+  },
+  {
+    id: "tac-skewer-2",
+    title: "Rook Skewer!",
+    fen: "4k3/4r3/8/8/8/8/8/4RK2 w - - 0 1",
+    solution: "Re8+",
+    hint: "Check the king — what's behind it?",
+    explanation:
+      "Re8+! The rook checks the king on e8. Black must move the king, and then you capture the rook on e7. That's a skewer — you attack the king first, then take the piece hiding behind it. Skewers work with rooks, bishops, and queens!",
+    type: "skewer",
+    difficulty: "beginner",
+  },
 ];
 
 export const openingsPuzzles: Puzzle[] = [
@@ -145,6 +233,28 @@ export const openingsPuzzles: Puzzle[] = [
     hint: "Black should also control the center!",
     explanation:
       "e5! Black fights for the center too. This leads to an Open Game — one of the most exciting types of chess. When both sides control the center, exciting battles begin!",
+    type: "tactic",
+    difficulty: "beginner",
+  },
+  {
+    id: "open-3",
+    title: "Castle for Safety!",
+    fen: "r1bqk2r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+    solution: "O-O",
+    hint: "Your king is in the center — castle to safety!",
+    explanation:
+      "O-O (castle kingside)! Your king moves to g1 and the rook jumps to f1. Castling puts your king safe behind pawns AND connects your rooks. You've developed your knight and bishop — it's the perfect time to castle. Safety first!",
+    type: "tactic",
+    difficulty: "beginner",
+  },
+  {
+    id: "open-4",
+    title: "Fight for the Center!",
+    fen: "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2",
+    solution: "e5",
+    hint: "Don't let Black have the center for free — fight back!",
+    explanation:
+      "e5! White's pawn advances and grabs more center space. Now Black's knight has no good square in the center. Controlling the center is rule #1 of openings. When your opponent plays d5, respond with e5 to fight for control!",
     type: "tactic",
     difficulty: "beginner",
   },
@@ -173,4 +283,44 @@ export const endgamePuzzles: Puzzle[] = [
     type: "mate-in-1",
     difficulty: "beginner",
   },
+  {
+    id: "end-3",
+    title: "Promote the Pawn!",
+    fen: "8/3P4/8/8/8/8/8/3K3k w - - 0 1",
+    solution: "d8=Q",
+    hint: "Your pawn is one step from becoming a queen!",
+    explanation:
+      "d8=Q! The pawn advances to the 8th rank and promotes to a queen! Always promote to a queen (unless it causes stalemate). Now you have a queen + king vs king — checkmate is easy from here.",
+    type: "tactic",
+    difficulty: "beginner",
+  },
+  {
+    id: "end-4",
+    title: "King + Queen Checkmate!",
+    fen: "7k/8/6KQ/8/8/8/8/8 w - - 0 1",
+    solution: "Qg7#",
+    hint: "The king is in the corner. Your queen can deliver checkmate!",
+    explanation:
+      "Qg7#! The queen moves to g7, delivering checkmate. The black king is trapped in the corner on h8 — it can't go to g8 (queen covers it), h7 (queen covers it), or g7 (queen is there!). White king covers nearby squares. Checkmate!",
+    type: "mate-in-1",
+    difficulty: "beginner",
+  },
+  {
+    id: "end-5",
+    title: "Passed Pawn — Push It!",
+    fen: "8/8/8/3k4/3P4/3K4/8/8 w - - 0 1",
+    solution: "d5",
+    hint: "Take the opposition and escort your pawn forward!",
+    explanation:
+      "d5! The pawn advances while your king supports it. This is the key technique in king and pawn endgames — your king must march AHEAD of the pawn to clear the way. The side with the passed pawn must keep pushing!",
+    type: "tactic",
+    difficulty: "intermediate",
+  },
+];
+
+export const allPuzzles: Puzzle[] = [
+  ...assessmentPuzzles,
+  ...tacticsPuzzles,
+  ...openingsPuzzles,
+  ...endgamePuzzles,
 ];

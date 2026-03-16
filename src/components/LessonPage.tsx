@@ -8,6 +8,8 @@ import TutorChat from "@/components/TutorChat";
 import { completeLesson } from "@/lib/progress";
 import type { Module } from "@/lib/lessons";
 import { tacticsPuzzles, openingsPuzzles, endgamePuzzles } from "@/lib/puzzles";
+import { awardXP } from "@/lib/xp";
+import { sounds } from "@/lib/sounds";
 
 const ChessDemo = dynamic(() => import("@/components/ChessDemo"), { ssr: false });
 const ChessPuzzle = dynamic(() => import("@/components/ChessPuzzle"), {
@@ -54,13 +56,19 @@ export default function LessonPage({ module }: Props) {
     completeLesson(selectedLesson.id, selectedLesson.badge);
     setEarnedBadge(selectedLesson.badge);
     setPhase("complete");
+    awardXP("lesson_complete");
+    sounds.badge();
   };
 
-  const handlePuzzleSolve = () => {
-    if (puzzleIndex + 1 < lessonPuzzles.length) {
-      setPuzzleIndex(puzzleIndex + 1);
-    } else {
-      completeLessonAndEarnBadge();
+  const handlePuzzleSolve = (correct: boolean) => {
+    if (correct) awardXP("puzzle_correct");
+    else awardXP("puzzle_wrong");
+    if (correct) {
+      if (puzzleIndex + 1 < lessonPuzzles.length) {
+        setPuzzleIndex(puzzleIndex + 1);
+      } else {
+        completeLessonAndEarnBadge();
+      }
     }
   };
 

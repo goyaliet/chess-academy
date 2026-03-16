@@ -6,6 +6,9 @@ import Navbar from "@/components/Navbar";
 import TutorChat from "@/components/TutorChat";
 import { getProgress, type Progress } from "@/lib/progress";
 import { modules } from "@/lib/lessons";
+import { getLevelInfo, LEVEL_THRESHOLDS, getDailyChallengePuzzleId, hasDoneDaily } from "@/lib/xp";
+import { allPuzzles } from "@/lib/puzzles";
+import DailyChallenge from "@/components/DailyChallenge";
 
 const allBadges = modules.flatMap((m) =>
   m.lessons.map((l) => ({ badge: l.badge, lesson: l.title, module: m.title, emoji: l.emoji }))
@@ -25,12 +28,21 @@ const levelLabels: Record<string, string> = {
 
 export default function ProgressPage() {
   const [progress, setProgress] = useState<Progress | null>(null);
+  const [dailyPuzzleId, setDailyPuzzleId] = useState<string | null>(null);
+  const [dailyDone, setDailyDone] = useState(false);
 
   useEffect(() => {
-    setProgress(getProgress());
+    const p = getProgress();
+    setProgress(p);
+    setDailyPuzzleId(getDailyChallengePuzzleId());
+    setDailyDone(hasDoneDaily());
   }, []);
 
   if (!progress) return null;
+
+  const currentXP: number = (progress as unknown as Record<string, number>).xp ?? 0;
+  const levelInfo = getLevelInfo(currentXP);
+  const dailyPuzzle = dailyPuzzleId ? allPuzzles.find((p) => p.id === dailyPuzzleId) ?? null : null;
 
   const totalLessons = modules.flatMap((m) => m.lessons).length;
   const completedPercent = Math.round(
@@ -92,6 +104,54 @@ export default function ProgressPage() {
             </div>
           ))}
         </div>
+
+        {/* XP Level bar */}
+        <div
+          className="rounded-2xl p-5 border mb-8"
+          style={{ background: "#1e293b", borderColor: "rgba(245,158,11,0.2)" }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <span className="text-2xl mr-2">{levelInfo.current.emoji}</span>
+              <span className="text-white font-bold text-lg">{levelInfo.current.title}</span>
+              <span className="text-slate-400 text-sm ml-2">Level {levelInfo.current.level}</span>
+            </div>
+            <span className="text-amber-400 font-bold">{currentXP} XP</span>
+          </div>
+          <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all duration-700"
+              style={{ width: `${levelInfo.progress}%` }}
+            />
+          </div>
+          {levelInfo.next && (
+            <p className="text-slate-500 text-xs mt-1.5">
+              {levelInfo.next.xp - currentXP} XP to reach {levelInfo.next.emoji} {levelInfo.next.title}
+            </p>
+          )}
+          {/* Level milestones */}
+          <div className="flex gap-2 mt-4 flex-wrap">
+            {LEVEL_THRESHOLDS.map((t) => (
+              <span
+                key={t.level}
+                className={`text-xs px-2 py-1 rounded-full border ${
+                  currentXP >= t.xp
+                    ? "border-amber-500/40 bg-amber-500/20 text-amber-400"
+                    : "border-slate-700 text-slate-600"
+                }`}
+              >
+                {t.emoji} {t.title}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Daily Challenge */}
+        {dailyPuzzle && (
+          <div className="mb-8">
+            <DailyChallenge puzzle={dailyPuzzle} done={dailyDone} onComplete={() => setDailyDone(true)} />
+          </div>
+        )}
 
         {/* Assessment CTA if not done */}
         {!progress.assessmentComplete && (
