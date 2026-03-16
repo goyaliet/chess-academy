@@ -5,7 +5,7 @@ export interface Puzzle {
   solution: string; // The correct move in SAN notation (e.g. "Qc8#", "Nc7+")
   hint: string;
   explanation: string;
-  type: "mate-in-1" | "fork" | "pin" | "skewer" | "back-rank" | "tactic";
+  type: "mate-in-1" | "fork" | "pin" | "skewer" | "back-rank" | "tactic" | "opening" | "endgame";
   difficulty: "beginner" | "intermediate";
 }
 
@@ -211,6 +211,61 @@ export const tacticsPuzzles: Puzzle[] = [
     type: "skewer",
     difficulty: "beginner",
   },
+  {
+    id: "tac-disc-1",
+    title: "Discovered Attack",
+    fen: "r1bq1rk1/ppp2ppp/2np1n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQ1RK1 w - - 0 7",
+    solution: "Ng5",
+    hint: "Move your knight to uncover an attack from another piece!",
+    explanation:
+      "Ng5! This is a discovered attack — moving the knight uncovers the bishop on c4, which now attacks the weak f7 square. The knight on g5 also threatens the bishop on c5 and looks toward f7. Double threats like this are hard to defend!",
+    type: "tactic",
+    difficulty: "intermediate",
+  },
+  {
+    id: "tac-disc-2",
+    title: "Double Check!",
+    fen: "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 4 4",
+    solution: "Ng5",
+    hint: "What if you could attack the king with TWO pieces at once?",
+    explanation:
+      "A double check is when TWO pieces check the king simultaneously — it can only be escaped by moving the king! Look for moves that check with the moving piece AND uncover a check from another piece behind it.",
+    type: "tactic",
+    difficulty: "intermediate",
+  },
+  {
+    id: "tac-defl-1",
+    title: "Deflection!",
+    fen: "r4rk1/pp3ppp/2p5/8/3Pn3/2PB4/PP4PP/R4RK1 b - - 0 1",
+    solution: "Nxd2",
+    hint: "Remove the piece that's defending something important!",
+    explanation:
+      "Nxd2! This deflects the bishop from defending important squares. Deflection means forcing a key defender to move away from its post. When a piece is overloaded — defending too many things — you can exploit it!",
+    type: "tactic",
+    difficulty: "intermediate",
+  },
+  {
+    id: "tac-defl-2",
+    title: "Overloaded Piece",
+    fen: "6k1/pp3ppp/8/8/8/8/PP3PPP/R5K1 w - - 0 1",
+    solution: "Ra8+",
+    hint: "Drive the king somewhere it doesn't want to go!",
+    explanation:
+      "Ra8+! Forces the king to move. A rook on the 8th rank is very powerful — it cuts off the enemy king and dominates the board. Look for forcing moves like checks that gain space or restrict the opponent's options.",
+    type: "tactic",
+    difficulty: "beginner",
+  },
+  {
+    id: "tac-inter-1",
+    title: "In-Between Move",
+    fen: "r1bq1rk1/pp3ppp/2pb4/3Pp3/4n3/2N2N2/PPP2PPP/R1BQR1K1 w - - 0 1",
+    solution: "Nxe4",
+    hint: "Sometimes before you recapture, there's an even better move first!",
+    explanation:
+      "Nxe4! An 'in-between move' (or Zwischenzug) means playing a strong move BEFORE making the expected recapture. Instead of following your opponent's plan, you insert a surprising move that changes everything. Always look for checks, captures, and threats before recapturing!",
+    type: "tactic",
+    difficulty: "intermediate",
+  },
 ];
 
 export const openingsPuzzles: Puzzle[] = [
@@ -256,6 +311,61 @@ export const openingsPuzzles: Puzzle[] = [
     explanation:
       "e5! White's pawn advances and grabs more center space. Now Black's knight has no good square in the center. Controlling the center is rule #1 of openings. When your opponent plays d5, respond with e5 to fight for control!",
     type: "tactic",
+    difficulty: "beginner",
+  },
+  {
+    id: "open-london-1",
+    title: "London System — Solid Setup",
+    fen: "rnbqkbnr/ppp1pppp/8/3p4/3P4/5N2/PPP1PPPP/RNBQKB1R w KQkq - 0 2",
+    solution: "Bf4",
+    hint: "Develop your bishop BEFORE playing e3 — it gets blocked otherwise!",
+    explanation:
+      "Bf4! In the London System, you must get your dark-squared bishop OUT before closing the center with e3. If you play e3 first, the bishop is trapped behind your own pawns. Principle: develop pieces to active squares before closing the center!",
+    type: "opening",
+    difficulty: "beginner",
+  },
+  {
+    id: "open-london-2",
+    title: "London — Don't Block Your Bishop",
+    fen: "rnbqkb1r/ppp1pppp/5n2/3p4/3P1B2/5N2/PPP1PPPP/RN1QKB1R w KQkq - 2 3",
+    solution: "e3",
+    hint: "Now that your bishop is out, you can safely support the center!",
+    explanation:
+      "e3! Now it's safe to play e3 because your bishop is already developed to f4. This supports your d4 pawn and prepares to develop the f1 bishop. The London System is very solid — you build a fortress and wait for your opponent to make mistakes!",
+    type: "opening",
+    difficulty: "beginner",
+  },
+  {
+    id: "open-sicilian-1",
+    title: "Sicilian — Fight for the Center",
+    fen: "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+    solution: "Nf3",
+    hint: "Develop a knight and prepare to open the center!",
+    explanation:
+      "Nf3! White develops a knight and prepares d4 to open the center. The Sicilian Defense (1...c5) is Black's most popular reply to e4 — Black avoids a symmetrical position and fights for the center without giving White an easy game. White should play Nf3 then d4 to seize the center!",
+    type: "opening",
+    difficulty: "beginner",
+  },
+  {
+    id: "open-castle-1",
+    title: "Castle Early — King Safety",
+    fen: "r1bqk2r/pppp1ppp/2n2n2/4p3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R w KQkq - 4 4",
+    solution: "O-O",
+    hint: "Your pieces are developed — now protect your king!",
+    explanation:
+      "O-O! Castling moves the king to safety behind a wall of pawns and connects the rooks. After e4, e5, Nf3, Nc6, Bc4, Nf6, Nc3, you've developed 3 pieces — now castle before your opponent can create an attack! A king in the center is a target.",
+    type: "opening",
+    difficulty: "beginner",
+  },
+  {
+    id: "open-gambit-1",
+    title: "Queen's Gambit — Accept or Decline?",
+    fen: "rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq - 0 2",
+    solution: "e6",
+    hint: "Don't always take the pawn! Develop solidly instead.",
+    explanation:
+      "e6! This is the Queen's Gambit DECLINED — Black gives back the pawn offer and focuses on solid development. Taking on c4 (the gambit accepted) gives White a big center after e4. By playing e6, Black defends d5 and gets ready to develop the f8 bishop.",
+    type: "opening",
     difficulty: "beginner",
   },
 ];
@@ -313,6 +423,61 @@ export const endgamePuzzles: Puzzle[] = [
     hint: "Take the opposition and escort your pawn forward!",
     explanation:
       "d5! The pawn advances while your king supports it. This is the key technique in king and pawn endgames — your king must march AHEAD of the pawn to clear the way. The side with the passed pawn must keep pushing!",
+    type: "tactic",
+    difficulty: "intermediate",
+  },
+  {
+    id: "end-rook-1",
+    title: "Rook Checkmate Pattern",
+    fen: "7k/8/6RK/8/8/8/8/8 w - - 0 1",
+    solution: "Rg8#",
+    hint: "Cut off the king and deliver checkmate!",
+    explanation:
+      "Rg8#! Rook checkmate — the rook covers the entire 8th rank, and the king on h6 takes away all escape squares. To checkmate with a rook, you need your king to cut off the enemy king first, then deliver the final blow with the rook on the edge!",
+    type: "mate-in-1",
+    difficulty: "beginner",
+  },
+  {
+    id: "end-queen-1",
+    title: "Queen + King Checkmate",
+    fen: "8/8/8/8/8/2k5/8/KQ6 w - - 0 1",
+    solution: "Qb3+",
+    hint: "Drive the king to the edge step by step!",
+    explanation:
+      "Qb3+! Forces the king toward the edge. The queen is so powerful that alone (with king support) she can force checkmate against a lone king. The technique: use the queen to create a 'box' that gets smaller and smaller until the king is trapped on the edge!",
+    type: "tactic",
+    difficulty: "intermediate",
+  },
+  {
+    id: "end-pawn-race-1",
+    title: "Pawn Race!",
+    fen: "8/p7/8/8/8/8/P7/8 w - - 0 1",
+    solution: "a4",
+    hint: "Both sides have passed pawns — who promotes first?",
+    explanation:
+      "a4! In a pawn race both pawns try to promote first. White's pawn is on a2 and Black's is on a7, so this is a tie — but White moves first! Count carefully: White plays a4, a5, a6, a7, a8=Q and queens at the same time as Black. When pawns are equal distance, White moves first = advantage!",
+    type: "tactic",
+    difficulty: "intermediate",
+  },
+  {
+    id: "end-king-center-1",
+    title: "Activate Your King!",
+    fen: "8/8/8/4k3/8/4K3/8/8 w - - 0 1",
+    solution: "Kd4",
+    hint: "In the endgame, the king is a fighting piece! Centralize it!",
+    explanation:
+      "Kd4! In the endgame, the king becomes a powerful piece — you must activate it! Unlike the middlegame where the king hides, in the endgame the king should march to the center. A centralized king controls more squares and supports pawns better.",
+    type: "tactic",
+    difficulty: "beginner",
+  },
+  {
+    id: "end-lucena-1",
+    title: "Build a Bridge",
+    fen: "1K1k4/1P6/8/8/8/8/r7/4R3 w - - 0 1",
+    solution: "Re4",
+    hint: "Protect your king from rook checks!",
+    explanation:
+      "Re4! This is the famous 'Lucena Position' — one of the most important endgame techniques. With Re4, you build a 'bridge' — the rook on e4 will shield your king from checks when it steps to the 7th rank to escort the pawn. Rook + pawn vs rook is winnable if you know this technique!",
     type: "tactic",
     difficulty: "intermediate",
   },

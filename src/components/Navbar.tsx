@@ -11,6 +11,7 @@ const navLinks = [
   { href: "/learn/endgames", label: "Endgames", icon: "👑" },
   { href: "/learn/strategy", label: "Strategy", icon: "🧠" },
   { href: "/practice", label: "Practice", icon: "🎮" },
+  { href: "/review", label: "Review", icon: "🔍" },
   { href: "/progress", label: "Progress", icon: "🏆" },
 ];
 

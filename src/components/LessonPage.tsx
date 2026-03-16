@@ -25,9 +25,10 @@ const allPuzzles = [...tacticsPuzzles, ...openingsPuzzles, ...endgamePuzzles];
 
 interface Props {
   module: Module;
+  hideNav?: boolean;
 }
 
-export default function LessonPage({ module }: Props) {
+export default function LessonPage({ module, hideNav }: Props) {
   const [selectedLesson, setSelectedLesson] = useState(module.lessons[0]);
   const [conceptIndex, setConceptIndex] = useState(0);
   const [phase, setPhase] = useState<"concepts" | "puzzles" | "complete">("concepts");
@@ -81,9 +82,9 @@ export default function LessonPage({ module }: Props) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0f172a" }}>
-      <Navbar />
-      <div className="max-w-6xl mx-auto px-4 py-8">
+    <div style={{ minHeight: hideNav ? undefined : "100vh", background: hideNav ? undefined : "#0f172a" }}>
+      {!hideNav && <Navbar />}
+      <div className={hideNav ? undefined : "max-w-6xl mx-auto px-4 py-8"}>
         {/* Module header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-amber-400 mb-1">
@@ -263,12 +264,12 @@ export default function LessonPage({ module }: Props) {
           </div>
         </div>
       </div>
-      <TutorChat
-        currentFen={
-          phase === "concepts" ? concept?.fen : currentPuzzle?.fen
-        }
-        context={`studying ${module.title} — ${selectedLesson.title}`}
-      />
+      {!hideNav && (
+        <TutorChat
+          currentFen={phase === "concepts" ? concept?.fen : currentPuzzle?.fen}
+          context={`studying ${module.title} — ${selectedLesson.title}`}
+        />
+      )}
     </div>
   );
 }
