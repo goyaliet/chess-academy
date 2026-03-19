@@ -41,7 +41,9 @@ export default function PracticeBoard({
           squareStyles,
           onPieceClick,
           onPieceDrag,
-          onSquareClick,
+          onSquareClick: onSquareClick
+            ? ({ square }: { piece: unknown; square: string }) => onSquareClick(square)
+            : undefined,
         }}
       />
     </div>
