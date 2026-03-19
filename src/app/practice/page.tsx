@@ -16,7 +16,7 @@ const PracticeBoard = dynamic(() => import("@/components/PracticeBoard"), {
   loading: () => (
     <div
       className="flex items-center justify-center bg-slate-800 rounded-xl"
-      style={{ width: 480, height: 480 }}
+      style={{ width: 560, height: 560 }}
     >
       <span className="text-4xl">♟️</span>
     </div>
@@ -336,7 +336,7 @@ export default function PracticePage() {
                 style={{
                   background: "#1e293b",
                   borderColor: "rgba(245,158,11,0.2)",
-                  width: 480,
+                  width: 560,
                 }}
               >
                 <div className="text-5xl mb-4">♟️</div>
@@ -394,7 +394,14 @@ export default function PracticePage() {
                     }
                   }}
                   onPieceDrag={({ square }: PieceHandlerArgs) => onPieceInteract(square)}
-                  size={480}
+                  onSquareClick={(square: string) => {
+                    if (selectedSquare && legalSquares.includes(square)) {
+                      commitMove(selectedSquare, square);
+                    } else {
+                      onSquareClick(square);
+                    }
+                  }}
+                  size={560}
                 />
               </div>
             )}

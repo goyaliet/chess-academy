@@ -11,6 +11,7 @@ interface Props {
   squareStyles?: Record<string, React.CSSProperties>;
   onPieceClick?: (args: { isSparePiece: boolean; piece: { pieceType: string }; square: string | null }) => void;
   onPieceDrag?: (args: { isSparePiece: boolean; piece: { pieceType: string }; square: string | null }) => void;
+  onSquareClick?: (square: string) => void;
   size?: number;
 }
 
@@ -22,7 +23,8 @@ export default function PracticeBoard({
   squareStyles,
   onPieceClick,
   onPieceDrag,
-  size = 480,
+  onSquareClick,
+  size = 560,
 }: Props) {
   return (
     <div style={{ width: size, height: size }}>
@@ -39,6 +41,7 @@ export default function PracticeBoard({
           squareStyles,
           onPieceClick,
           onPieceDrag,
+          onSquareClick,
         }}
       />
     </div>
