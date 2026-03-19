@@ -41,17 +41,16 @@ export default function AssessPage() {
   const nextPuzzle = () => {
     setShowNext(false);
     if (current + 1 >= assessmentPuzzles.length) {
-      finishAssessment();
+      finishAssessment(score);
     } else {
       setCurrent((c) => c + 1);
     }
   };
 
-  const finishAssessment = () => {
-    const finalScore = score + (solved[solved.length - 1] ? 0 : 0);
+  const finishAssessment = (finalScore: number) => {
     const level =
-      score >= 4 ? "advanced" : score >= 2 ? "intermediate" : "beginner";
-    setAssessmentResult(score, level);
+      finalScore >= 4 ? "advanced" : finalScore >= 2 ? "intermediate" : "beginner";
+    setAssessmentResult(finalScore, level);
     setPhase("result");
   };
 

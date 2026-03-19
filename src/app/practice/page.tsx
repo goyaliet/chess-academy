@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 type PieceDropHandlerArgs = { piece: unknown; sourceSquare: string; targetSquare: string | null };
+type PieceHandlerArgs = { isSparePiece: boolean; piece: { pieceType: string }; square: string | null };
 import dynamic from "next/dynamic";
 import { Chess } from "chess.js";
 import Navbar from "@/components/Navbar";
@@ -15,7 +16,7 @@ const PracticeBoard = dynamic(() => import("@/components/PracticeBoard"), {
   loading: () => (
     <div
       className="flex items-center justify-center bg-slate-800 rounded-xl"
-      style={{ width: 400, height: 400 }}
+      style={{ width: 480, height: 480 }}
     >
       <span className="text-4xl">♟️</span>
     </div>
@@ -31,8 +32,48 @@ const DIFFICULTY_LABELS: Record<Difficulty, { label: string; desc: string; color
   hard:   { label: "Hard",   desc: "Plays well — test your best chess!",    color: "bg-red-500/20 border-red-500/40 text-red-400" },
 };
 
+/** Build square styles: last-move highlight + selected piece + legal move dots */
+function buildSquareStyles(
+  lastMove: { from: string; to: string } | null,
+  selectedSquare: string | null,
+  legalSquares: string[],
+  game: Chess
+): Record<string, React.CSSProperties> {
+  const styles: Record<string, React.CSSProperties> = {};
+
+  if (lastMove) {
+    const tint: React.CSSProperties = { backgroundColor: "rgba(255,214,0,0.22)" };
+    styles[lastMove.from] = tint;
+    styles[lastMove.to] = tint;
+  }
+
+  if (selectedSquare) {
+    styles[selectedSquare] = { backgroundColor: "rgba(100,200,100,0.35)" };
+  }
+
+  for (const sq of legalSquares) {
+    const occupied = game.get(sq as Parameters<Chess["get"]>[0]);
+    if (occupied) {
+      styles[sq] = {
+        ...styles[sq],
+        boxShadow: "inset 0 0 0 4px rgba(100,200,100,0.75)",
+        borderRadius: "2px",
+      };
+    } else {
+      const existing = (styles[sq] as { backgroundColor?: string } | undefined)?.backgroundColor;
+      styles[sq] = {
+        ...styles[sq],
+        background: existing
+          ? `radial-gradient(circle, rgba(100,200,100,0.65) 26%, transparent 27%), ${existing}`
+          : "radial-gradient(circle, rgba(100,200,100,0.65) 26%, transparent 27%)",
+      };
+    }
+  }
+
+  return styles;
+}
+
 export default function PracticePage() {
-  const [game, setGame] = useState(new Chess());
   const [fen, setFen] = useState(new Chess().fen());
   const [status, setStatus] = useState<GameStatus>("waiting");
   const [playerColor, setPlayerColor] = useState<"white" | "black">("white");
@@ -44,7 +85,19 @@ export default function PracticePage() {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [xpAwarded, setXpAwarded] = useState<number | null>(null);
   const [levelUpMsg, setLevelUpMsg] = useState<string | null>(null);
+
+  // Click-to-move state
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const [legalSquares, setLegalSquares] = useState<string[]>([]);
+  const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
+
   const gameRef = useRef(new Chess());
+
+  const isMyTurn =
+    status === "playing" &&
+    !thinking &&
+    ((playerColor === "white" && gameRef.current.turn() === "w") ||
+      (playerColor === "black" && gameRef.current.turn() === "b"));
 
   const checkGameOver = useCallback((g: Chess): string | null => {
     if (g.isCheckmate()) {
@@ -79,6 +132,8 @@ export default function PracticePage() {
   const endGame = useCallback((result: string, history: string[], isWin: boolean) => {
     setGameResult(result);
     setStatus("gameover");
+    setSelectedSquare(null);
+    setLegalSquares([]);
 
     if (isWin) {
       sounds.win();
@@ -98,7 +153,6 @@ export default function PracticePage() {
   const botMove = useCallback(
     (currentGame: Chess, currentHistory: string[]) => {
       setThinking(true);
-      // Run engine in a setTimeout so UI can update first
       setTimeout(() => {
         const move = getBotMove(currentGame.fen(), difficulty);
         if (!move) {
@@ -108,17 +162,13 @@ export default function PracticePage() {
         const newGame = new Chess(currentGame.fen());
         const made = newGame.move(move);
         gameRef.current = newGame;
-        setGame(newGame);
         setFen(newGame.fen());
+        if (made) setLastMove({ from: made.from, to: made.to });
         const newHistory = [...currentHistory, move];
         setMoveHistory(newHistory);
 
-        // Play sound
-        if (made?.flags.includes("c") || made?.flags.includes("e")) {
-          sounds.capture();
-        } else {
-          sounds.move();
-        }
+        if (made?.flags.includes("c") || made?.flags.includes("e")) sounds.capture();
+        else sounds.move();
         if (newGame.inCheck()) sounds.check();
 
         const result = checkGameOver(newGame);
@@ -132,32 +182,25 @@ export default function PracticePage() {
     [difficulty, checkGameOver, endGame]
   );
 
-  const onDrop = useCallback(
-    ({ sourceSquare, targetSquare }: PieceDropHandlerArgs) => {
-      if (status !== "playing" || thinking || !targetSquare) return false;
-      if (playerColor === "white" && game.turn() !== "w") return false;
-      if (playerColor === "black" && game.turn() !== "b") return false;
+  const commitMove = useCallback(
+    (from: string, to: string): boolean => {
+      if (status !== "playing" || thinking) return false;
 
-      const newGame = new Chess(game.fen());
-      const move = newGame.move({
-        from: sourceSquare,
-        to: targetSquare,
-        promotion: "q",
-      });
+      const newGame = new Chess(gameRef.current.fen());
+      const move = newGame.move({ from, to, promotion: "q" });
       if (!move) return false;
 
       gameRef.current = newGame;
-      setGame(newGame);
       setFen(newGame.fen());
+      setLastMove({ from: move.from, to: move.to });
+      setSelectedSquare(null);
+      setLegalSquares([]);
+
       const newHistory = [...moveHistory, move.san];
       setMoveHistory(newHistory);
 
-      // Play sound
-      if (move.flags.includes("c") || move.flags.includes("e")) {
-        sounds.capture();
-      } else {
-        sounds.move();
-      }
+      if (move.flags.includes("c") || move.flags.includes("e")) sounds.capture();
+      else sounds.move();
       if (newGame.inCheck()) sounds.check();
 
       const result = checkGameOver(newGame);
@@ -170,13 +213,69 @@ export default function PracticePage() {
       botMove(newGame, newHistory);
       return true;
     },
-    [game, status, playerColor, thinking, botMove, checkGameOver, endGame, moveHistory]
+    [status, thinking, moveHistory, checkGameOver, endGame, botMove]
+  );
+
+  const onDrop = useCallback(
+    ({ sourceSquare, targetSquare }: PieceDropHandlerArgs) => {
+      if (status !== "playing" || thinking || !targetSquare) return false;
+      if (playerColor === "white" && gameRef.current.turn() !== "w") return false;
+      if (playerColor === "black" && gameRef.current.turn() !== "b") return false;
+      return commitMove(sourceSquare, targetSquare);
+    },
+    [status, thinking, playerColor, commitMove]
+  );
+
+  // Click-to-move: select piece then click destination
+  const onPieceInteract = useCallback(
+    (square: string | null) => {
+      if (!isMyTurn || !square) return;
+      const pColor = playerColor === "white" ? "w" : "b";
+      const piece = gameRef.current.get(square as Parameters<Chess["get"]>[0]);
+      if (!piece || piece.color !== pColor) {
+        setSelectedSquare(null);
+        setLegalSquares([]);
+        return;
+      }
+      setSelectedSquare(square);
+      const moves = gameRef.current.moves({
+        square: square as Parameters<Chess["moves"]>[0]["square"],
+        verbose: true,
+      }) as Array<{ to: string }>;
+      setLegalSquares(moves.map((m) => m.to));
+    },
+    [isMyTurn, playerColor]
+  );
+
+  // Clicking on an empty/enemy square when a piece is selected: try to move
+  const onSquareClick = useCallback(
+    (square: string | null) => {
+      if (!isMyTurn || !square) return;
+
+      if (selectedSquare) {
+        if (legalSquares.includes(square)) {
+          commitMove(selectedSquare, square);
+          return;
+        }
+        // Re-select own piece if clicked
+        const pColor = playerColor === "white" ? "w" : "b";
+        const piece = gameRef.current.get(square as Parameters<Chess["get"]>[0]);
+        if (piece && piece.color === pColor) {
+          setSelectedSquare(square);
+          const moves = gameRef.current.moves({ square: square as Parameters<Chess["moves"]>[0]["square"], verbose: true }) as Array<{ to: string }>;
+          setLegalSquares(moves.map((m) => m.to));
+          return;
+        }
+        setSelectedSquare(null);
+        setLegalSquares([]);
+      }
+    },
+    [isMyTurn, selectedSquare, legalSquares, playerColor, commitMove]
   );
 
   const startGame = (color: "white" | "black") => {
     const newGame = new Chess();
     gameRef.current = newGame;
-    setGame(newGame);
     setFen(newGame.fen());
     setPlayerColor(color);
     setGameResult(null);
@@ -184,6 +283,9 @@ export default function PracticePage() {
     setReview(null);
     setXpAwarded(null);
     setLevelUpMsg(null);
+    setSelectedSquare(null);
+    setLegalSquares([]);
+    setLastMove(null);
     setStatus("playing");
 
     if (color === "black") {
@@ -198,15 +300,19 @@ export default function PracticePage() {
     setReview(null);
     setXpAwarded(null);
     setLevelUpMsg(null);
+    setSelectedSquare(null);
+    setLegalSquares([]);
+    setLastMove(null);
     const newGame = new Chess();
     gameRef.current = newGame;
-    setGame(newGame);
     setFen(newGame.fen());
   };
 
   const boardOrientation = playerColor === "white" ? "white" : "black";
   const currentXP = typeof window !== "undefined" ? getXP() : 0;
   const levelInfo = getLevelInfo(currentXP);
+
+  const squareStyles = buildSquareStyles(lastMove, selectedSquare, legalSquares, gameRef.current);
 
   return (
     <div style={{ minHeight: "100vh", background: "#0f172a" }}>
@@ -230,7 +336,7 @@ export default function PracticePage() {
                 style={{
                   background: "#1e293b",
                   borderColor: "rgba(245,158,11,0.2)",
-                  width: 400,
+                  width: 480,
                 }}
               >
                 <div className="text-5xl mb-4">♟️</div>
@@ -279,6 +385,16 @@ export default function PracticePage() {
                   onDrop={onDrop}
                   orientation={boardOrientation}
                   draggable={!thinking && status === "playing"}
+                  squareStyles={squareStyles}
+                  onPieceClick={({ square }: PieceHandlerArgs) => {
+                    if (selectedSquare && legalSquares.includes(square ?? "")) {
+                      onSquareClick(square);
+                    } else {
+                      onPieceInteract(square);
+                    }
+                  }}
+                  onPieceDrag={({ square }: PieceHandlerArgs) => onPieceInteract(square)}
+                  size={480}
                 />
               </div>
             )}
@@ -299,7 +415,9 @@ export default function PracticePage() {
               >
                 {thinking
                   ? `Bot (${difficulty}) is thinking...`
-                  : `Your turn — you are playing ${playerColor}`}
+                  : isMyTurn
+                  ? `Your turn — click or drag a piece (playing ${playerColor})`
+                  : `Waiting for bot...`}
               </div>
             )}
 

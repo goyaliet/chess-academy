@@ -10,6 +10,7 @@ const navLinks = [
   { href: "/learn/openings", label: "Openings", icon: "📖" },
   { href: "/learn/endgames", label: "Endgames", icon: "👑" },
   { href: "/learn/strategy", label: "Strategy", icon: "🧠" },
+  { href: "/play", label: "Play vs AI", icon: "🤖" },
   { href: "/practice", label: "Practice", icon: "🎮" },
   { href: "/review", label: "Review", icon: "🔍" },
   { href: "/progress", label: "Progress", icon: "🏆" },

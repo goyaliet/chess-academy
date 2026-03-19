@@ -8,11 +8,24 @@ interface Props {
   onDrop: (args: PieceDropHandlerArgs) => boolean;
   orientation: "white" | "black";
   draggable: boolean;
+  squareStyles?: Record<string, React.CSSProperties>;
+  onPieceClick?: (args: { isSparePiece: boolean; piece: { pieceType: string }; square: string | null }) => void;
+  onPieceDrag?: (args: { isSparePiece: boolean; piece: { pieceType: string }; square: string | null }) => void;
+  size?: number;
 }
 
-export default function PracticeBoard({ fen, onDrop, orientation, draggable }: Props) {
+export default function PracticeBoard({
+  fen,
+  onDrop,
+  orientation,
+  draggable,
+  squareStyles,
+  onPieceClick,
+  onPieceDrag,
+  size = 480,
+}: Props) {
   return (
-    <div style={{ width: 400, height: 400 }}>
+    <div style={{ width: size, height: size }}>
       <Chessboard
         options={{
           position: fen,
@@ -22,7 +35,10 @@ export default function PracticeBoard({ fen, onDrop, orientation, draggable }: P
           darkSquareStyle: { backgroundColor: "#4a3728" },
           lightSquareStyle: { backgroundColor: "#f0d9b5" },
           animationDurationInMs: 200,
-          boardStyle: { width: 400, height: 400 },
+          boardStyle: { width: size, height: size },
+          squareStyles,
+          onPieceClick,
+          onPieceDrag,
         }}
       />
     </div>

@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess } from "chess.js";
 type PieceDropHandlerArgs = { piece: unknown; sourceSquare: string; targetSquare: string | null };
+type PieceHandlerArgs = { isSparePiece: boolean; piece: { pieceType: string }; square: string | null };
 import type { Puzzle } from "@/lib/puzzles";
 import { sounds } from "@/lib/sounds";
 
@@ -24,33 +25,91 @@ interface Props {
   size?: number;
 }
 
+function getSideToMove(fen: string): "w" | "b" {
+  return fen.split(" ")[1] === "b" ? "b" : "w";
+}
+
+const typeHints: Record<string, string> = {
+  "fork": "Look for a piece that attacks TWO enemy pieces at once.",
+  "pin": "Find the piece that can't move because it's shielding something more valuable.",
+  "skewer": "Attack the king first — the piece behind it will be exposed.",
+  "back-rank": "The king is trapped by its own pawns — use your rook or queen on the back rank.",
+  "mate-in-1": "One move ends the game — find the check that leaves no escape.",
+  "tactic": "Look for the strongest forcing move: check, capture, or unstoppable threat.",
+  "opening": "Follow opening principles: control the center, develop pieces, keep your king safe.",
+  "endgame": "Activate your king and think about pawn promotion and key squares.",
+};
+
 export default function ChessPuzzle({ puzzle, onSolve, size = 400 }: Props) {
+  const sideToMove = getSideToMove(puzzle.fen);
   const [game, setGame] = useState(new Chess(puzzle.fen));
   const [status, setStatus] = useState<"playing" | "correct" | "wrong">("playing");
   const [message, setMessage] = useState(puzzle.hint);
   const [attempts, setAttempts] = useState(0);
   const [showHint, setShowHint] = useState(false);
 
+  // Click-to-move state
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const [legalMoves, setLegalMoves] = useState<string[]>([]);
+
   const hintSquare = showHint ? getHintSquare(puzzle.fen, puzzle.solution) : null;
 
-  const onDrop = useCallback(
-    ({ sourceSquare, targetSquare }: PieceDropHandlerArgs) => {
-      if (status !== "playing" || !targetSquare) return false;
+  // Build square styles: hint highlight + selected + legal move dots/rings
+  const buildSquareStyles = useCallback((): Record<string, React.CSSProperties> => {
+    const styles: Record<string, React.CSSProperties> = {};
 
-      const move = game.move({
-        from: sourceSquare,
-        to: targetSquare,
-        promotion: "q",
-      });
+    // Hint highlight
+    if (hintSquare) {
+      styles[hintSquare] = { backgroundColor: "rgba(255, 215, 0, 0.55)", borderRadius: "4px" };
+    }
 
+    // Selected piece highlight
+    if (selectedSquare) {
+      styles[selectedSquare] = {
+        backgroundColor: "rgba(100, 200, 100, 0.45)",
+        borderRadius: "4px",
+      };
+    }
+
+    // Legal move indicators
+    for (const sq of legalMoves) {
+      const occupied = !!game.get(sq as Parameters<Chess["get"]>[0]);
+      if (occupied) {
+        // Capture: green ring inset
+        styles[sq] = {
+          ...styles[sq],
+          boxShadow: "inset 0 0 0 4px rgba(100,200,100,0.75)",
+          borderRadius: "2px",
+        };
+      } else {
+        // Empty: radial dot
+        const existing = (styles[sq] as { backgroundColor?: string } | undefined)?.backgroundColor;
+        styles[sq] = {
+          ...styles[sq],
+          background: existing
+            ? `radial-gradient(circle, rgba(100,200,100,0.65) 26%, transparent 27%), ${existing}`
+            : "radial-gradient(circle, rgba(100,200,100,0.65) 26%, transparent 27%)",
+        };
+      }
+    }
+
+    return styles;
+  }, [hintSquare, selectedSquare, legalMoves, game]);
+
+  const tryMove = useCallback(
+    (from: string, to: string) => {
+      if (status !== "playing") return false;
+
+      const move = game.move({ from, to, promotion: "q" });
       if (!move) return false;
 
       const moveSan = move.san;
       const normalizeMove = (m: string) => m.replace(/[+#]/g, "");
-      const isCorrect =
-        normalizeMove(moveSan) === normalizeMove(puzzle.solution);
+      const isCorrect = normalizeMove(moveSan) === normalizeMove(puzzle.solution);
 
       setAttempts((a) => a + 1);
+      setSelectedSquare(null);
+      setLegalMoves([]);
 
       if (isCorrect) {
         sounds.correct();
@@ -63,19 +122,74 @@ export default function ChessPuzzle({ puzzle, onSolve, size = 400 }: Props) {
         sounds.wrong();
         setGame(new Chess(puzzle.fen));
         setStatus("wrong");
-        if (attempts >= 1) {
+
+        const currentAttempts = attempts; // snapshot before setState
+        const typeHint = typeHints[puzzle.type] ?? puzzle.hint;
+
+        if (currentAttempts === 0) {
+          setMessage(`❌ ${moveSan} doesn't solve it. ${typeHint}`);
+        } else if (currentAttempts === 1) {
           setShowHint(true);
-          setMessage("Hint: " + puzzle.hint + " — Try again! Answer: " + puzzle.solution);
+          setMessage(`Still searching? ${puzzle.hint} (The piece to move is highlighted in gold.)`);
         } else {
-          setMessage("Not quite! Think again. " + puzzle.hint);
+          setShowHint(true);
+          setMessage(`The answer is ${puzzle.solution}. ${puzzle.explanation}`);
         }
-        setTimeout(() => setStatus("playing"), 1500);
-        if (attempts >= 2) onSolve(false);
+
+        setTimeout(() => setStatus("playing"), 1800);
+        if (currentAttempts >= 2) onSolve(false);
       }
 
       return true;
     },
     [game, puzzle, status, attempts, onSolve]
+  );
+
+  // Drag-and-drop handler
+  const onDrop = useCallback(
+    ({ sourceSquare, targetSquare }: PieceDropHandlerArgs) => {
+      if (status !== "playing" || !targetSquare) return false;
+      return tryMove(sourceSquare, targetSquare);
+    },
+    [status, tryMove]
+  );
+
+  // Click-to-move: clicking a piece selects it (or re-selects), clicking a legal square moves
+  const onSquareClick = useCallback(
+    (square: string | null) => {
+      if (status !== "playing" || !square) return;
+
+      // If a piece is already selected, try to move to this square
+      if (selectedSquare) {
+        if (legalMoves.includes(square)) {
+          tryMove(selectedSquare, square);
+          return;
+        }
+
+        // Clicked own piece — switch selection
+        const piece = game.get(square as Parameters<Chess["get"]>[0]);
+        if (piece && piece.color === sideToMove) {
+          setSelectedSquare(square);
+          const moves = game.moves({ square: square as Parameters<Chess["moves"]>[0]["square"], verbose: true }) as Array<{ to: string }>;
+          setLegalMoves(moves.map((m) => m.to));
+          return;
+        }
+
+        // Clicked non-legal empty square — deselect
+        setSelectedSquare(null);
+        setLegalMoves([]);
+        return;
+      }
+
+      // No piece selected yet — select if own piece
+      const piece = game.get(square as Parameters<Chess["get"]>[0]);
+      if (piece && piece.color === sideToMove) {
+        setSelectedSquare(square);
+        const moves = game.moves({ square: square as Parameters<Chess["moves"]>[0]["square"], verbose: true }) as Array<{ to: string }>;
+        setLegalMoves(moves.map((m) => m.to));
+      }
+    },
+    [status, selectedSquare, legalMoves, game, sideToMove, tryMove]
   );
 
   const reset = () => {
@@ -84,6 +198,8 @@ export default function ChessPuzzle({ puzzle, onSolve, size = 400 }: Props) {
     setMessage(puzzle.hint);
     setAttempts(0);
     setShowHint(false);
+    setSelectedSquare(null);
+    setLegalMoves([]);
   };
 
   const statusColors = {
@@ -94,9 +210,13 @@ export default function ChessPuzzle({ puzzle, onSolve, size = 400 }: Props) {
 
   const statusIcon = { playing: "💡", correct: "✅", wrong: "❌" };
 
-  const squareStyles: Record<string, React.CSSProperties> = hintSquare
-    ? { [hintSquare]: { backgroundColor: "rgba(255, 215, 0, 0.55)", borderRadius: "4px" } }
-    : {};
+  // Board flash overlay color
+  const boardFlashClass =
+    status === "correct"
+      ? "ring-4 ring-green-500 shadow-[0_0_20px_rgba(34,197,94,0.4)]"
+      : status === "wrong"
+      ? "ring-4 ring-red-500 shadow-[0_0_20px_rgba(239,68,68,0.35)]"
+      : "";
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -104,7 +224,15 @@ export default function ChessPuzzle({ puzzle, onSolve, size = 400 }: Props) {
         <span className="px-3 py-1 text-xs font-bold uppercase tracking-widest rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
           {puzzle.type.replace("-", " ")}
         </span>
-        <span className="text-slate-400 text-sm">White to move</span>
+        <span className="text-slate-400 text-sm">
+          {sideToMove === "w" ? "⬜ White" : "⬛ Black"} to move
+        </span>
+        {/* Attempt counter */}
+        {attempts > 0 && status !== "correct" && (
+          <span className="px-2 py-0.5 text-xs rounded-full bg-slate-700 text-slate-400 border border-slate-600">
+            Attempt {attempts + 1}
+          </span>
+        )}
         {hintSquare && (
           <span className="px-2 py-0.5 text-xs rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
             💡 Hint: highlighted square
@@ -112,17 +240,28 @@ export default function ChessPuzzle({ puzzle, onSolve, size = 400 }: Props) {
         )}
       </div>
 
-      <div className="chess-container rounded-lg overflow-hidden" style={{ width: size, height: size }}>
+      <div className={`chess-container rounded-lg overflow-hidden transition-all duration-300 ${boardFlashClass}`} style={{ width: size, height: size }}>
         <Chessboard
           options={{
             position: game.fen(),
             onPieceDrop: onDrop,
+            onPieceClick: ({ square }: PieceHandlerArgs) => onSquareClick(square),
+            onPieceDrag: ({ square }: PieceHandlerArgs) => {
+              if (!square) return;
+              const piece = game.get(square as Parameters<Chess["get"]>[0]);
+              if (piece && piece.color === sideToMove) {
+                setSelectedSquare(square);
+                const moves = game.moves({ square: square as Parameters<Chess["moves"]>[0]["square"], verbose: true }) as Array<{ to: string }>;
+                setLegalMoves(moves.map((m) => m.to));
+              }
+            },
             allowDragging: status === "playing",
+            boardOrientation: sideToMove === "b" ? "black" : "white",
             darkSquareStyle: { backgroundColor: "#4a3728" },
             lightSquareStyle: { backgroundColor: "#f0d9b5" },
             animationDurationInMs: 200,
             boardStyle: { width: size, height: size },
-            squareStyles,
+            squareStyles: buildSquareStyles(),
           }}
         />
       </div>

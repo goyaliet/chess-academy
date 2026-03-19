@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import TutorChat from "@/components/TutorChat";
+import ProgressDashboard from "@/components/ProgressDashboard";
 
 const modules = [
   {
@@ -42,6 +43,14 @@ const modules = [
     href: "/learn/strategy",
     color: "from-green-900 to-green-800",
     border: "border-green-500/40",
+  },
+  {
+    title: "Play vs AI",
+    emoji: "🤖",
+    description: "Full chess game against the bot — pick Easy, Medium or Hard and play!",
+    href: "/play",
+    color: "from-cyan-900 to-cyan-800",
+    border: "border-cyan-500/40",
   },
   {
     title: "Practice",
@@ -109,6 +118,9 @@ export default function Home() {
             &ldquo;Chess is not about moving pieces — it&apos;s about having a plan.&rdquo;
           </p>
         </div>
+
+        {/* Progress Dashboard */}
+        <ProgressDashboard />
 
         {/* Module Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

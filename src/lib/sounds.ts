@@ -1,6 +1,15 @@
 "use client";
 
 let audioCtx: AudioContext | null = null;
+let _muted = false;
+
+export function toggleMute(): boolean {
+  _muted = !_muted;
+  return _muted;
+}
+export function isMuted(): boolean {
+  return _muted;
+}
 
 function getCtx(): AudioContext {
   if (!audioCtx) audioCtx = new AudioContext();
@@ -8,6 +17,7 @@ function getCtx(): AudioContext {
 }
 
 function beep(freq: number, duration: number, type: OscillatorType = "sine", vol = 0.3) {
+  if (_muted) return;
   try {
     const ctx = getCtx();
     const osc = ctx.createOscillator();

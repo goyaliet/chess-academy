@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess } from "chess.js";
 type PieceDropHandlerArgs = { piece: unknown; sourceSquare: string; targetSquare: string | null };
+type PieceHandlerArgs = { isSparePiece: boolean; piece: { pieceType: string }; square: string | null };
 import { sounds } from "@/lib/sounds";
 import { awardXP } from "@/lib/xp";
 
@@ -99,6 +100,10 @@ export default function OpeningTrainer({ size = 360 }: Props) {
   const [complete, setComplete] = useState(false);
   const [xpMsg, setXpMsg] = useState<string | null>(null);
 
+  // Click-to-move state
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const [legalMoves, setLegalMoves] = useState<string[]>([]);
+
   const isUserTurn = moveIndex % 2 === 0; // user always plays white (even indices)
 
   const resetTrainer = useCallback((line: OpeningLine) => {
@@ -108,6 +113,8 @@ export default function OpeningTrainer({ size = 360 }: Props) {
     setFeedback("idle");
     setComplete(false);
     setXpMsg(null);
+    setSelectedSquare(null);
+    setLegalMoves([]);
   }, []);
 
   const playBotMove = useCallback((currentGame: Chess, nextIndex: number, line: OpeningLine) => {
@@ -128,17 +135,20 @@ export default function OpeningTrainer({ size = 360 }: Props) {
     }, 600);
   }, []);
 
-  const onDrop = useCallback(
-    ({ sourceSquare, targetSquare }: PieceDropHandlerArgs) => {
-      if (!isUserTurn || feedback !== "idle" || complete || !targetSquare) return false;
+  const tryPlayerMove = useCallback(
+    (from: string, to: string): boolean => {
+      if (!isUserTurn || feedback !== "idle" || complete) return false;
       if (moveIndex >= selectedLine.moves.length) return false;
 
       const newGame = new Chess(game.fen());
-      const move = newGame.move({ from: sourceSquare, to: targetSquare, promotion: "q" });
+      const move = newGame.move({ from, to, promotion: "q" });
       if (!move) return false;
 
       const expected = selectedLine.moves[moveIndex];
       const norm = (s: string) => s.replace(/[+#]/g, "");
+
+      setSelectedSquare(null);
+      setLegalMoves([]);
 
       if (norm(move.san) === norm(expected)) {
         sounds.correct();
@@ -146,12 +156,10 @@ export default function OpeningTrainer({ size = 360 }: Props) {
         setFeedback("correct");
         const nextIndex = moveIndex + 1;
         setMoveIndex(nextIndex);
-        // Play bot's response
         playBotMove(newGame, nextIndex, selectedLine);
       } else {
         sounds.wrong();
         setFeedback("wrong");
-        // Reset to before the wrong move
         setGame(new Chess(game.fen()));
         setTimeout(() => setFeedback("idle"), 1500);
       }
@@ -159,6 +167,74 @@ export default function OpeningTrainer({ size = 360 }: Props) {
     },
     [game, moveIndex, selectedLine, isUserTurn, feedback, complete, playBotMove]
   );
+
+  const onDrop = useCallback(
+    ({ sourceSquare, targetSquare }: PieceDropHandlerArgs) => {
+      if (!targetSquare) return false;
+      return tryPlayerMove(sourceSquare, targetSquare);
+    },
+    [tryPlayerMove]
+  );
+
+  // Click-to-move handler
+  const onSquareClick = useCallback(
+    (square: string | null) => {
+      if (!isUserTurn || feedback !== "idle" || complete || !square) return;
+
+      // If something already selected, try to move there
+      if (selectedSquare) {
+        if (legalMoves.includes(square)) {
+          tryPlayerMove(selectedSquare, square);
+          return;
+        }
+        // Re-select own piece
+        const piece = game.get(square as Parameters<Chess["get"]>[0]);
+        if (piece && piece.color === "w") {
+          setSelectedSquare(square);
+          const moves = game.moves({ square: square as Parameters<Chess["moves"]>[0]["square"], verbose: true }) as Array<{ to: string }>;
+          setLegalMoves(moves.map((m) => m.to));
+          return;
+        }
+        setSelectedSquare(null);
+        setLegalMoves([]);
+        return;
+      }
+
+      // Select white piece
+      const piece = game.get(square as Parameters<Chess["get"]>[0]);
+      if (piece && piece.color === "w") {
+        setSelectedSquare(square);
+        const moves = game.moves({ square: square as Parameters<Chess["moves"]>[0]["square"], verbose: true }) as Array<{ to: string }>;
+        setLegalMoves(moves.map((m) => m.to));
+      }
+    },
+    [isUserTurn, feedback, complete, selectedSquare, legalMoves, game, tryPlayerMove]
+  );
+
+  // Build square styles for click-to-move indicators
+  const buildSquareStyles = (): Record<string, React.CSSProperties> => {
+    const styles: Record<string, React.CSSProperties> = {};
+
+    if (selectedSquare) {
+      styles[selectedSquare] = { backgroundColor: "rgba(100,200,100,0.45)", borderRadius: "4px" };
+    }
+
+    for (const sq of legalMoves) {
+      const occupied = !!game.get(sq as Parameters<Chess["get"]>[0]);
+      if (occupied) {
+        styles[sq] = { ...styles[sq], boxShadow: "inset 0 0 0 4px rgba(100,200,100,0.75)", borderRadius: "2px" };
+      } else {
+        const existing = (styles[sq] as { backgroundColor?: string } | undefined)?.backgroundColor;
+        styles[sq] = {
+          ...styles[sq],
+          background: existing
+            ? `radial-gradient(circle, rgba(100,200,100,0.65) 26%, transparent 27%), ${existing}`
+            : "radial-gradient(circle, rgba(100,200,100,0.65) 26%, transparent 27%)",
+        };
+      }
+    }
+    return styles;
+  };
 
   const currentTip = selectedLine.tips[moveIndex] ?? selectedLine.tips[selectedLine.tips.length - 1];
   const progressPct = Math.round((moveIndex / selectedLine.moves.length) * 100);
@@ -185,16 +261,36 @@ export default function OpeningTrainer({ size = 360 }: Props) {
       <div className="flex flex-col lg:flex-row gap-6 items-start">
         {/* Board */}
         <div className="flex flex-col items-center gap-3">
-          <div className="chess-container rounded-xl overflow-hidden" style={{ width: size, height: size }}>
+          <div
+            className={`chess-container rounded-xl overflow-hidden transition-all ${
+              feedback === "correct"
+                ? "ring-2 ring-green-500 shadow-[0_0_16px_rgba(34,197,94,0.35)]"
+                : feedback === "wrong"
+                ? "ring-2 ring-red-500 shadow-[0_0_16px_rgba(239,68,68,0.35)]"
+                : ""
+            }`}
+            style={{ width: size, height: size }}
+          >
             <Chessboard
               options={{
                 position: game.fen(),
                 onPieceDrop: complete ? undefined : onDrop,
+                onPieceClick: complete ? undefined : ({ square }: PieceHandlerArgs) => onSquareClick(square),
+                onPieceDrag: complete ? undefined : ({ square }: PieceHandlerArgs) => {
+                  if (!square || !isUserTurn) return;
+                  const piece = game.get(square as Parameters<Chess["get"]>[0]);
+                  if (piece && piece.color === "w") {
+                    setSelectedSquare(square);
+                    const moves = game.moves({ square: square as Parameters<Chess["moves"]>[0]["square"], verbose: true }) as Array<{ to: string }>;
+                    setLegalMoves(moves.map((m) => m.to));
+                  }
+                },
                 allowDragging: isUserTurn && feedback === "idle" && !complete,
                 darkSquareStyle: { backgroundColor: "#4a3728" },
                 lightSquareStyle: { backgroundColor: "#f0d9b5" },
                 animationDurationInMs: 250,
                 boardStyle: { width: size, height: size },
+                squareStyles: buildSquareStyles(),
               }}
             />
           </div>
@@ -252,7 +348,7 @@ export default function OpeningTrainer({ size = 360 }: Props) {
                   <p className="text-sm font-semibold mb-1">
                     {feedback === "correct" && <span className="text-green-400">✅ Correct!</span>}
                     {feedback === "wrong" && <span className="text-red-400">❌ Wrong move — try again!</span>}
-                    {feedback === "idle" && isUserTurn && <span className="text-amber-400">Your turn (White)</span>}
+                    {feedback === "idle" && isUserTurn && <span className="text-amber-400">Your turn (White) — click or drag a piece</span>}
                     {feedback === "idle" && !isUserTurn && <span className="text-slate-400">Black is responding...</span>}
                   </p>
                   <p className="text-slate-300 text-xs leading-relaxed">{currentTip}</p>
